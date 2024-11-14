@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Outil de Gestion des Honoraires</title>
+    <!-- Styles et Bootstrap -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- SheetJS pour l'exportation Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <style>
+        body { padding-top: 20px; background-color: #f8f9fa; }
+        .section { margin-top: 20px; padding: 20px; background-color: #ffffff; border-radius: 8px; display: none; }
+        .input-small { width: 80px; display: inline-block; }
+        .nav-tabs .nav-item.show .nav-link, .nav-tabs .nav-link.active {
+            background-color: #e9ecef;
+        }
+        .table td, .table th {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 class="text-center">Outil de Gestion des Honoraires</h1>
+
+    <!-- Sélection du type d'accès -->
+    <div class="text-center mt-4">
+        <button id="workerAccessBtn" class="btn btn-primary mr-2">Accès AMM (Travailleur)</button>
+        <button id="adminAccessBtn" class="btn btn-secondary">Accès Responsable</button>
+    </div>
+
+    <!-- Section AMM (Travailleur) -->
+    <div id="workerSection" class="section">
+        <h2>Ajouter des Jours Travaillés (AMM)</h2>
+        <div class="form-group">
+            <label for="ammWorkerSelect">Sélectionner votre nom :</label>
+            <select id="ammWorkerSelect" class="form-control">
+                <option value="">--Sélectionner--</option>
+            </select>
+            <button id="ammWorkerSelectBtn" class="btn btn-primary mt-2">Valider</button>
+        </div>
+        <div id="ammWorkerDetails" style="display: none;">
+            <form id="ammAddWorkDayForm">
+                <div class="form-group">
+                    <label for="ammWorkDay">Date :</label>
+                    <input type="date" id="ammWorkDay" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="ammWorkType">Type de journée :</label>
+                    <select id="ammWorkType" class="form-control">
+                        <option value="">--Sélectionner--</option>
+                        <option value="Demi-journée">Demi-journée</option>
+                        <option value="Journée">Journée</option>
+                        <option value="Soirée">Soirée</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="ammWorkLocation">Lieu :</label>
+                    <input type="text" id="ammWorkLocation" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-success">Ajouter le jour</button>
+            </form>
+            <h3 class="mt-4">Jours Travaillés</h3>
+            <table class="table table-striped" id="ammWorkDaysList">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Lieu</th>
+                        <th>Statut</th>
+                        <th>Rémunération</th>
+                        <th>Retenue</th>
+                        <th>Montant Net</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Section Responsable -->
+    <div id="adminSection" class="section">
+        <h2>Gestion des Honoraires (Responsable)</h2>
+
+        <!-- Ajouter un travailleur -->
+        <form id="adminManageWorkersForm" class="form-inline mb-3">
+            <div class="form-group">
+                <label for="adminAddWorker" class="mr-2">Ajouter un travailleur :</label>
+                <input type="text" id="adminAddWorker" class="form-control mr-2" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Ajouter</button>
+        </form>
+
+        <!-- Supprimer un travailleur -->
+        <form id="adminRemoveWorkerForm" class="form-inline mb-4">
+            <div class="form-group">
+                <label for="adminRemoveWorker" class="mr-2">Supprimer un travailleur :</label>
+                <select id="adminRemoveWorker" class="form-control mr-2">
+                    <option value="">--Sélectionner--</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-danger">Supprimer</button>
+        </form>
+
+        <!-- Onglets pour séparer les sections -->
+        <ul class="nav nav-tabs" id="adminTab" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="validate-days-tab" data-toggle="tab" href="#validate-days" role="tab">Validation des Journées</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="export-data-tab" data-toggle="tab" href="#export-data" role="tab">Exportation des Récapitulatifs</a>
+            </li>
+        </ul>
+        <div class="tab-content" id="adminTabContent">
+            <!-- Validation des Journées -->
+            <div class="tab-pane fade show active" id="validate-days" role="tabpanel">
+                <!-- Sélectionner un travailleur pour voir les jours travaillés -->
+                <div class="form-group mt-3">
+                    <label for="adminWorkerSelect">Sélectionner un travailleur pour voir les jours travaillés :</label>
+                    <select id="adminWorkerSelect" class="form-control">
+                        <option value="">--Sélectionner--</option>
+                    </select>
+                </div>
+
+                <!-- Jours Travaillés -->
+                <h3 class="mt-4">Jours Travaillés</h3>
+                <table class="table table-striped" id="adminWorkDaysList">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Lieu</th>
+                            <th>Rémunération (€)</th>
+                            <th>Retenue (%)</th>
+                            <th>Montant Net (€)</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- Exportation des Récapitulatifs -->
+            <div class="tab-pane fade" id="export-data" role="tabpanel">
+                <h3 class="mt-4">Exporter des Récapitulatifs</h3>
+                <form id="adminExportForm" class="form-inline mb-4">
+                    <div class="form-group mr-2">
+                        <label for="exportWorkerSelect" class="mr-2">Travailleur :</label>
+                        <select id="exportWorkerSelect" class="form-control">
+                            <option value="all">Tous</option>
+                        </select>
+                    </div>
+                    <div class="form-group mr-2">
+                        <label for="exportStartDate" class="mr-2">Du :</label>
+                        <input type="date" id="exportStartDate" class="form-control">
+                    </div>
+                    <div class="form-group mr-2">
+                        <label for="exportEndDate" class="mr-2">Au :</label>
+                        <input type="date" id="exportEndDate" class="form-control">
+                    </div>
+                    <button type="button" id="exportButton" class="btn btn-primary">Exporter en Excel</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    // Données initiales
+    let employees = JSON.parse(localStorage.getItem('employees')) || [];
+    let workDays = JSON.parse(localStorage.getItem('workDays')) || {};
+
+    function saveData() {
+        localStorage.setItem('employees', JSON.stringify(employees));
+        localStorage.setItem('workDays', JSON.stringify(workDays));
+    }
+
+    function updateWorkerSelectors() {
+        const ammWorkerSelect = document.getElementById('ammWorkerSelect');
+        const adminWorkerSelect = document.getElementById('adminWorkerSelect');
+        const adminRemoveWorker = document.getElementById('adminRemoveWorker');
+        const exportWorkerSelect = document.getElementById('exportWorkerSelect');
+
+        ammWorkerSelect.innerHTML = '<option value="">--Sélectionner--</option>';
+        adminWorkerSelect.innerHTML = '<option value="">--Sélectionner--</option>';
+        adminRemoveWorker.innerHTML = '<option value="">--Sélectionner--</option>';
+        exportWorkerSelect.innerHTML = '<option value="all">Tous</option>';
+
+        employees.forEach(employee => {
+            const option1 = document.createElement('option');
+            option1.value = employee;
+            option1.textContent = employee;
+            ammWorkerSelect.appendChild(option1);
+
+            const option2 = document.createElement('option');
+            option2.value = employee;
+            option2.textContent = employee;
+            adminWorkerSelect.appendChild(option2);
+
+            const option3 = document.createElement('option');
+            option3.value = employee;
+            option3.textContent = employee;
+            adminRemoveWorker.appendChild(option3);
+
+            const option4 = document.createElement('option');
+            option4.value = employee;
+            option4.textContent = employee;
+            exportWorkerSelect.appendChild(option4);
+        });
+    }
+
+    // Gestion de l'accès
+    document.getElementById('workerAccessBtn').addEventListener('click', function() {
+        document.getElementById('workerSection').style.display = 'block';
+        document.getElementById('adminSection').style.display = 'none';
+        updateWorkerSelectors();
+    });
+
+    document.getElementById('adminAccessBtn').addEventListener('click', function() {
+        document.getElementById('adminSection').style.display = 'block';
+        document.getElementById('workerSection').style.display = 'none';
+        updateWorkerSelectors();
+    });
+
+    // AMM : Sélection du travailleur
+    document.getElementById('ammWorkerSelectBtn').addEventListener('click', function() {
+        const workerName = document.getElementById('ammWorkerSelect').value;
+        if (workerName) {
+            document.getElementById('ammWorkerDetails').style.display = 'block';
+            loadAmmFormData(workerName); // Charger les données du formulaire
+            renderAmmWorkDays();
+        } else {
+            alert("Veuillez sélectionner votre nom.");
+        }
+    });
+
+    // Fonction pour sauvegarder les données du formulaire AMM
+    function saveAmmFormData(workerName) {
+        const formData = {
+            date: document.getElementById('ammWorkDay').value,
+            type: document.getElementById('ammWorkType').value,
+            location: document.getElementById('ammWorkLocation').value
+        };
+        let ammFormData = JSON.parse(localStorage.getItem('ammFormData')) || {};
+        ammFormData[workerName] = formData;
+        localStorage.setItem('ammFormData', JSON.stringify(ammFormData));
+    }
+
+    // Fonction pour charger les données du formulaire AMM
+    function loadAmmFormData(workerName) {
+        let ammFormData = JSON.parse(localStorage.getItem('ammFormData')) || {};
+        const formData = ammFormData[workerName];
+        if (formData) {
+            document.getElementById('ammWorkDay').value = formData.date || '';
+            document.getElementById('ammWorkType').value = formData.type || '';
+            document.getElementById('ammWorkLocation').value = formData.location || '';
+        } else {
+            document.getElementById('ammAddWorkDayForm').reset();
+        }
+    }
+
+    // Écouteurs d'événements sur les champs du formulaire AMM
+    document.getElementById('ammWorkDay').addEventListener('input', function() {
+        const workerName = document.getElementById('ammWorkerSelect').value;
+        if (workerName) {
+            saveAmmFormData(workerName);
+        }
+    });
+
+    document.getElementById('ammWorkType').addEventListener('input', function() {
+        const workerName = document.getElementById('ammWorkerSelect').value;
+        if (workerName) {
+            saveAmmFormData(workerName);
+        }
+    });
+
+    document.getElementById('ammWorkLocation').addEventListener('input', function() {
+        const workerName = document.getElementById('ammWorkerSelect').value;
+        if (workerName) {
+            saveAmmFormData(workerName);
+        }
+    });
+
+    // Soumission du formulaire AMM
+    document.getElementById('ammAddWorkDayForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const workerName = document.getElementById('ammWorkerSelect').value;
+        const selectedDate = document.getElementById('ammWorkDay').value;
+        const workType = document.getElementById('ammWorkType').value;
+        const workLocation = document.getElementById('ammWorkLocation').value.trim();
+
+        if (!workerName) {
+            alert("Veuillez sélectionner votre nom.");
+            return;
+        }
+
+        if (!selectedDate || !workType || !workLocation) {
+            alert("Veuillez remplir tous les champs.");
+            return;
+        }
+
+        if (!workDays[workerName]) {
+            workDays[workerName] = [];
+        }
+
+        workDays[workerName].push({
+            date: selectedDate,
+            type: workType,
+            location: workLocation,
+            validatedByWorker: false,
+            validatedByAdmin: false,
+            remuneration: null,
+            deduction: null,
+            netAmount: null
+        });
+        saveData();
+
+        // Effacer les données du formulaire sauvegardé
+        let ammFormData = JSON.parse(localStorage.getItem('ammFormData')) || {};
+        delete ammFormData[workerName];
+        localStorage.setItem('ammFormData', JSON.stringify(ammFormData));
+
+        renderAmmWorkDays();
+        document.getElementById('ammAddWorkDayForm').reset();
+    });
+
+    // Rendu des jours travaillés AMM
+    function renderAmmWorkDays() {
+        const workerName = document.getElementById('ammWorkerSelect').value;
+        const ammWorkDaysListBody = document.querySelector('#ammWorkDaysList tbody');
+        ammWorkDaysListBody.innerHTML = '';
+
+        if (workerName && workDays[workerName]) {
+            workDays[workerName].forEach((day, index) => {
+                let row = document.createElement('tr');
+                let status = '';
+                if (day.validatedByAdmin) {
+                    status = '<span class="badge badge-success">Validé par Responsable</span>';
+                } else if (day.validatedByWorker) {
+                    status = '<span class="badge badge-info">En attente de validation</span>';
+                } else {
+                    status = '<span class="badge badge-secondary">En attente de validation AMM</span>';
+                }
+
+                row.innerHTML = `
+                    <td>${day.date}</td>
+                    <td>${day.type}</td>
+                    <td>${day.location}</td>
+                    <td>${day.remuneration != null && !isNaN(day.remuneration) && day.validatedByAdmin ? Number(day.remuneration).toFixed(2) + ' €' : ''}</td>
+                    <td>${day.deduction != null && !isNaN(day.deduction) && day.validatedByAdmin ? Number(day.deduction).toFixed(2) + ' %' : ''}</td>
+                    <td>${day.netAmount != null && !isNaN(day.netAmount) && day.validatedByAdmin ? Number(day.netAmount).toFixed(2) + ' €' : ''}</td>
+                    <td>${status}</td>
+                    <td>
+                        ${(!day.validatedByWorker && !day.validatedByAdmin) ? `<button class="btn btn-sm btn-warning" onclick="editAmmDay('${workerName}', ${index})">Modifier</button>` : ''}
+                        ${(!day.validatedByWorker && !day.validatedByAdmin) ? `<button class="btn btn-sm btn-success" onclick="validateAmmDay('${workerName}', ${index})">Valider</button>` : ''}
+                        ${(!day.validatedByAdmin) ? `<button class="btn btn-sm btn-danger" onclick="deleteAmmDay('${workerName}', ${index})">Supprimer</button>` : ''}
+                    </td>
+                `;
+                ammWorkDaysListBody.appendChild(row);
+            });
+        }
+    }
+
+    // Rendu des jours travaillés pour le Responsable
+    function renderAdminWorkDays() {
+        const workerName = document.getElementById('adminWorkerSelect').value;
+        const adminWorkDaysListBody = document.querySelector('#adminWorkDaysList tbody');
+        adminWorkDaysListBody.innerHTML = '';
+
+        if (workerName && workDays[workerName]) {
+            workDays[workerName].forEach((day, index) => {
+                let row = document.createElement('tr');
+                let status = '';
+                if (day.validatedByAdmin) {
+                    status = '<span class="badge badge-success">Validé par Responsable</span>';
+                } else if (day.validatedByWorker) {
+                    status = '<span class="badge badge-info">Validé par AMM</span>';
+                } else {
+                    status = '<span class="badge badge-secondary">En attente de validation AMM</span>';
+                }
+
+                let remunerationInput = '';
+                if (day.validatedByWorker) {
+                    remunerationInput = `
+                        <input type="number" min="0" step="0.01" class="form-control input-small" 
+                               value="${day.remuneration != null ? day.remuneration : ''}" 
+                               onchange="updateRemuneration('${workerName}', ${index}, this.value)" 
+                               ${day.validatedByAdmin ? 'disabled' : ''}>
+                    `;
+                }
+
+                let deductionInput = '';
+                if (day.validatedByWorker) {
+                    deductionInput = `
+                        <input type="number" min="0" max="100" step="0.01" class="form-control input-small" 
+                               value="${day.deduction != null ? day.deduction : ''}" 
+                               onchange="updateDeduction('${workerName}', ${index}, this.value)" 
+                               ${day.validatedByAdmin ? 'disabled' : ''}>
+                    `;
+                }
+
+                let netAmount = '';
+                if (day.netAmount != null && !isNaN(day.netAmount)) {
+                    netAmount = Number(day.netAmount).toFixed(2) + ' €';
+                }
+
+                row.innerHTML = `
+                    <td>${day.date}</td>
+                    <td>${day.type}</td>
+                    <td>${day.location}</td>
+                    <td>${remunerationInput}</td>
+                    <td>${deductionInput}</td>
+                    <td>${netAmount}</td>
+                    <td>${status}</td>
+                    <td>
+                        ${!day.validatedByAdmin ? `<button class="btn btn-sm btn-warning" onclick="editAdminDay('${workerName}', ${index})">Modifier</button>` : ''}
+                        ${day.validatedByWorker && !day.validatedByAdmin ? `<button class="btn btn-sm btn-success" onclick="validateAdminDay('${workerName}', ${index})">Valider</button>` : ''}
+                        ${day.validatedByAdmin ? `<button class="btn btn-sm btn-secondary" onclick="unlockAdminDay('${workerName}', ${index})">Déverrouiller</button>` : ''}
+                        <button class="btn btn-sm btn-danger" onclick="deleteAdminDay('${workerName}', ${index})">Supprimer</button>
+                    </td>
+                `;
+                adminWorkDaysListBody.appendChild(row);
+            });
+        }
+    }
+
+    // Fonctions pour l'AMM
+    window.editAmmDay = function(workerName, dayIndex) {
+        const day = workDays[workerName][dayIndex];
+        if (!day.validatedByWorker && !day.validatedByAdmin) {
+            const newDate = prompt("Modifier la date :", day.date);
+            const newType = prompt("Modifier le type de journée :", day.type);
+            const newLocation = prompt("Modifier le lieu :", day.location);
+            if (newDate && newType && newLocation) {
+                day.date = newDate;
+                day.type = newType;
+                day.location = newLocation;
+                saveData();
+                renderAmmWorkDays();
+                renderAdminWorkDays();
+            }
+        } else {
+            alert("Ce jour est validé et ne peut plus être modifié.");
+        }
+    };
+
+    window.validateAmmDay = function(workerName, dayIndex) {
+        workDays[workerName][dayIndex].validatedByWorker = true;
+        saveData();
+        renderAmmWorkDays();
+        renderAdminWorkDays();
+    };
+
+    window.deleteAmmDay = function(workerName, dayIndex) {
+        if (confirm("Voulez-vous vraiment supprimer ce jour ?")) {
+            workDays[workerName].splice(dayIndex, 1);
+            saveData();
+            renderAmmWorkDays();
+            renderAdminWorkDays();
+        }
+    };
+
+    // Fonctions pour le Responsable
+    document.getElementById('adminWorkerSelect').addEventListener('change', renderAdminWorkDays);
+
+    window.editAdminDay = function(workerName, dayIndex) {
+        const day = workDays[workerName][dayIndex];
+        if (!day.validatedByAdmin) {
+            const newDate = prompt("Modifier la date :", day.date);
+            const newType = prompt("Modifier le type de journée :", day.type);
+            const newLocation = prompt("Modifier le lieu :", day.location);
+            if (newDate && newType && newLocation) {
+                day.date = newDate;
+                day.type = newType;
+                day.location = newLocation;
+                saveData();
+                renderAdminWorkDays();
+                renderAmmWorkDays();
+            }
+        } else {
+            alert("Ce jour est verrouillé et doit être déverrouillé pour être modifié.");
+        }
+    };
+
+    window.validateAdminDay = function(workerName, dayIndex) {
+        const day = workDays[workerName][dayIndex];
+        if (day.remuneration === null || day.deduction === null) {
+            alert("Veuillez saisir la rémunération et la retenue avant de valider.");
+            return;
+        }
+        // Calcul du montant net
+        day.netAmount = day.remuneration * (1 - (day.deduction / 100));
+        saveData();
+        workDays[workerName][dayIndex].validatedByAdmin = true;
+        renderAdminWorkDays();
+        renderAmmWorkDays();
+    };
+
+    window.unlockAdminDay = function(workerName, dayIndex) {
+        if (confirm("Voulez-vous déverrouiller ce jour ?")) {
+            workDays[workerName][dayIndex].validatedByAdmin = false;
+            saveData();
+            renderAdminWorkDays();
+            renderAmmWorkDays();
+        }
+    };
+
+    window.deleteAdminDay = function(workerName, dayIndex) {
+        if (confirm("Voulez-vous vraiment supprimer ce jour ?")) {
+            workDays[workerName].splice(dayIndex, 1);
+            saveData();
+            renderAdminWorkDays();
+            renderAmmWorkDays();
+        }
+    };
+
+    window.updateRemuneration = function(workerName, dayIndex, value) {
+        let day = workDays[workerName][dayIndex];
+        day.remuneration = parseFloat(value) || 0;
+        // Recalculer le montant net si possible
+        if (day.deduction !== null) {
+            day.netAmount = day.remuneration * (1 - (day.deduction / 100));
+        }
+        saveData();
+        renderAdminWorkDays();
+        renderAmmWorkDays();
+    };
+
+    window.updateDeduction = function(workerName, dayIndex, value) {
+        let day = workDays[workerName][dayIndex];
+        day.deduction = parseFloat(value) || 0;
+        // Recalculer le montant net si possible
+        if (day.remuneration !== null) {
+            day.netAmount = day.remuneration * (1 - (day.deduction / 100));
+        }
+        saveData();
+        renderAdminWorkDays();
+        renderAmmWorkDays();
+    };
+
+    // Exportation des récapitulatifs
+    document.getElementById('exportButton').addEventListener('click', function() {
+        const workerName = document.getElementById('exportWorkerSelect').value;
+        const startDate = document.getElementById('exportStartDate').value;
+        const endDate = document.getElementById('exportEndDate').value;
+
+        if (!startDate || !endDate) {
+            alert("Veuillez sélectionner une période valide.");
+            return;
+        }
+
+        let exportData = [];
+        if (workerName === 'all') {
+            for (const worker in workDays) {
+                exportData.push(...filterWorkDays(worker, startDate, endDate));
+            }
+        } else {
+            exportData.push(...filterWorkDays(workerName, startDate, endDate));
+        }
+
+        if (exportData.length === 0) {
+            alert("Aucun jour travaillé trouvé pour cette période.");
+            return;
+        }
+
+        generateExcel(exportData);
+    });
+
+    function filterWorkDays(workerName, startDate, endDate) {
+        const filteredDays = [];
+        if (workDays[workerName]) {
+            workDays[workerName].forEach(day => {
+                if (day.validatedByAdmin) {
+                    const dayDate = new Date(day.date);
+                    if (dayDate >= new Date(startDate) && dayDate <= new Date(endDate)) {
+                        filteredDays.push({
+                            Travailleur: workerName,
+                            Date: day.date,
+                            Type: day.type,
+                            Lieu: day.location,
+                            Rémunération: day.remuneration,
+                            Retenue: day.deduction,
+                            'Montant Net': day.netAmount
+                        });
+                    }
+                }
+            });
+        }
+        return filteredDays;
+    }
+
+    function generateExcel(data) {
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Récapitulatif');
+
+        // Générer le fichier Excel
+        XLSX.writeFile(workbook, 'recapitulatif.xlsx');
+    }
+
+    // Gestion des travailleurs (ajout/suppression)
+    document.getElementById('adminManageWorkersForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const newWorker = document.getElementById('adminAddWorker').value.trim();
+        if (newWorker && !employees.includes(newWorker)) {
+            employees.push(newWorker);
+            saveData();
+            updateWorkerSelectors();
+            document.getElementById('adminAddWorker').value = '';
+        } else {
+            alert("Le nom du travailleur est vide ou existe déjà.");
+        }
+    });
+
+    document.getElementById('adminRemoveWorkerForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const workerToRemove = document.getElementById('adminRemoveWorker').value;
+        if (workerToRemove && employees.includes(workerToRemove)) {
+            if (confirm(`Voulez-vous vraiment supprimer ${workerToRemove} ?`)) {
+                employees = employees.filter(worker => worker !== workerToRemove);
+                delete workDays[workerToRemove];
+                saveData();
+                updateWorkerSelectors();
+                renderAdminWorkDays();
+            }
+        } else {
+            alert("Veuillez sélectionner un travailleur à supprimer.");
+        }
+    });
+
+    updateWorkerSelectors();
+
+});
+</script>
+
+</body>
+</html>
